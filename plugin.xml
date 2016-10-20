@@ -14,10 +14,10 @@
   </js-module>
 
   <platform name="android">
-    <source-file src="src/android/com/cordovaplugincamerapreview/CameraPreview.java" target-dir="src/com/cordovaplugincamerapreview" />
-    <source-file src="src/android/com/cordovaplugincamerapreview/CameraActivity.java" target-dir="src/com/cordovaplugincamerapreview" />
-    <source-file src="src/android/com/cordovaplugincamerapreview/Preview.java" target-dir="src/com/cordovaplugincamerapreview" />
-    <source-file src="src/android/com/cordovaplugincamerapreview/TapGestureDetector.java" target-dir="src/com/cordovaplugincamerapreview" />
+    <source-file src="src/android/src/com/cordovaplugincamerapreview/CameraPreview.java" target-dir="src/com/cordovaplugincamerapreview" />
+    <source-file src="src/android/src/com/cordovaplugincamerapreview/CameraActivity.java" target-dir="src/com/cordovaplugincamerapreview" />
+    <source-file src="src/android/src/com/cordovaplugincamerapreview/Preview.java" target-dir="src/com/cordovaplugincamerapreview" />
+    <source-file src="src/android/src/com/cordovaplugincamerapreview/TapGestureDetector.java" target-dir="src/com/cordovaplugincamerapreview" />
     <source-file src="src/android/res/layout/camera_activity.xml" target-dir="res/layout" />
     <source-file src="src/android/res/values/camera_theme.xml" target-dir="res/values" />
     <source-file src="src/android/res/values/camera_ids.xml" target-dir="res/values" />
