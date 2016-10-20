@@ -362,8 +362,8 @@ public class CameraActivity extends Fragment {
 
                     // crop to match view
                     try {
-                        double viewRatio = frameContainerLayout.getWidth() / (double) frameContainerLayout.getHeight();
-                        if (pictureRatio != viewRatio) {
+                        double viewRatio = mPreview.getWidth() / (double) mPreview.getHeight();
+                        if (Math.abs(pictureRatio - viewRatio) > 0.0000001d) {
                             if (width / viewRatio > height) {
                                 height = pictureHeight;
                                 width = (int) Math.round(height * viewRatio);
@@ -376,6 +376,8 @@ public class CameraActivity extends Fragment {
                             Canvas canvas = new Canvas(work);
                             canvas.drawBitmap(picture, (width - pictureWidth) / 2, (height - pictureHeight) / 2, null);
                             picture = work;
+
+                            Log.d(TAG, String.format("Cropped picture from: %dx%d to: %dx%d", pictureWidth, pictureHeight, width, height));
 
                             pictureWidth = width;
                             pictureHeight = height;
@@ -418,6 +420,8 @@ public class CameraActivity extends Fragment {
                                 }
 
                                 picture = Bitmap.createScaledBitmap(picture, width, height, false);
+
+                                Log.d(TAG, String.format("Scaled picture from: %dx%d to: %dx%d", pictureWidth, pictureHeight, width, height));
                             }
                         } catch (OutOfMemoryError oom) {
                             // You can run out of memory if the image is very large:
