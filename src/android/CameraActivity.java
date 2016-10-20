@@ -441,6 +441,14 @@ public class CameraActivity extends Fragment {
                 }
             };
 
+            Camera.Parameters parameters = mCamera.getParameters();
+            List<Camera.Size> sizes = parameters.getSupportedPictureSizes();
+
+            Camera.Size size = mPreview.getOptimalSize(sizes, maxWidth, maxHeight);
+            Log.d(TAG, "Set picture size to: " + size.width + "x" + size.height);
+            parameters.setPictureSize(size.width, size.height);
+            mCamera.setParameters(parameters);
+
             mCamera.takePicture(null, null, mPicture);
         } else {
             canTakePicture = true;
