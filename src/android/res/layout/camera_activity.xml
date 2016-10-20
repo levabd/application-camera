@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/frame_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_weight=".7"
+        tools:context="com.cordovaplugincamerapreview.CameraActivity">
+
+    <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_horizontal|top"
+            android:id="@+id/frame_camera_cont"
+            android:layout_gravity="center_horizontal|top">
+
+<!--
+        <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/video_view"
+                android:scaleType="fitXY"
+                android:layout_gravity="top"/>
+-->
+    </RelativeLayout>
+</FrameLayout>

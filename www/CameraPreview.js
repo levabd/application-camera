@@ -14,6 +14,10 @@ CameraPreview.setFlashMode = function(flashMode, onSuccess, onError) {
   exec(onSuccess, onError, PLUGIN_NAME, "setFlashMode", [flashMode]);
 };
 
+CameraPreview.setFocusMode = function(focusMode, onSuccess, onError) {
+  exec(onSuccess, onError, PLUGIN_NAME, "setFocusMode", [focusMode]);
+};
+
 CameraPreview.setOnLogHandler = function(onSuccess, onError) {
   exec(onSuccess, onError, PLUGIN_NAME, "wLog", []);
 };
@@ -81,5 +85,6 @@ CameraPreview.disable = function(disable, onSuccess, onError){
 };
 
 CameraPreview.FlashMode = {OFF: 0, ON: 1, AUTO: 2};
+CameraPreview.FocusMode = {AUTO: 0, CONTINUOUS: 1};
 
 module.exports = CameraPreview;
