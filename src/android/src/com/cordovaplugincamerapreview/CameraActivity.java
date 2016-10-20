@@ -13,7 +13,6 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.*;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 import java.io.ByteArrayOutputStream;
@@ -45,8 +44,8 @@ public class CameraActivity extends Fragment {
     private int x;
     private int y;
     private String appResourcesPackage;
-    private int currentFlashMode = FLASH_OFF;
-    private int currentFocusMode = FOCUS_AUTO;
+    private int currentFlashMode = FLASH_AUTO;
+    private int currentFocusMode = FOCUS_CONTINUOUS;
 
     void setEventListener(CameraPreviewListener listener) {
         eventListener = listener;
@@ -60,11 +59,6 @@ public class CameraActivity extends Fragment {
         view = inflater.inflate(getResources().getIdentifier("camera_activity", "layout", appResourcesPackage), container, false);
         createCameraPreview();
         return view;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
     }
 
     void setRect(int x, int y, int width, int height) {
@@ -86,12 +80,28 @@ public class CameraActivity extends Fragment {
 
             //video view
             mPreview = new Preview(getActivity());
-            FrameLayout mainLayout = (FrameLayout) view.findViewById(getResources().getIdentifier("video_view", "id", appResourcesPackage));
-            mainLayout.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
-            mainLayout.addView(mPreview);
-            mainLayout.setEnabled(false);
+            mPreview.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
+            mPreview.setEnabled(false);
 
-            final GestureDetector gestureDetector = new GestureDetector(getActivity().getApplicationContext(), new TapGestureDetector());
+            RelativeLayout mainLayout = (RelativeLayout) view.findViewById(getResources().getIdentifier("camera_container", "id", appResourcesPackage));
+            mainLayout.addView(mPreview);
+
+            final GestureDetector gestureDetector = new GestureDetector(getActivity().getApplicationContext(), new GestureDetector.SimpleOnGestureListener() {
+                @Override
+                public boolean onDown(MotionEvent e) {
+                    return false;
+                }
+
+                @Override
+                public boolean onSingleTapUp(MotionEvent e) {
+                    return true;
+                }
+
+                @Override
+                public boolean onSingleTapConfirmed(MotionEvent e) {
+                    return true;
+                }
+            });
 
             getActivity().runOnUiThread(new Runnable() {
                 @Override
@@ -192,22 +202,16 @@ public class CameraActivity extends Fragment {
             mCamera.setParameters(cameraParameters);
         }
 
-        // set continuous autofocus
+        // set/restore flash and focus
         setFocusMode(currentFocusMode);
         setFlashMode(currentFlashMode);
 
         cameraCurrentlyLocked = defaultCameraId;
-
-        if (mPreview.mPreviewSize == null) {
-            mPreview.setCamera(mCamera, cameraCurrentlyLocked);
-        } else {
-            mPreview.switchCamera(mCamera, cameraCurrentlyLocked);
-            mCamera.startPreview();
-        }
+        mPreview.setCamera(mCamera, cameraCurrentlyLocked);
 
         Log.d(TAG, "cameraCurrentlyLocked:" + cameraCurrentlyLocked);
 
-        final FrameLayout frameContainerLayout = (FrameLayout) view.findViewById(getResources().getIdentifier("frame_container", "id", appResourcesPackage));
+//        final FrameLayout frameContainerLayout = (FrameLayout) view.findViewById(getResources().getIdentifier("frame_container", "id", appResourcesPackage));
         ViewTreeObserver viewTreeObserver = frameContainerLayout.getViewTreeObserver();
         if (viewTreeObserver.isAlive()) {
             viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -215,7 +219,7 @@ public class CameraActivity extends Fragment {
                 public void onGlobalLayout() {
                     frameContainerLayout.getViewTreeObserver().removeGlobalOnLayoutListener(this);
                     frameContainerLayout.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-                    final RelativeLayout frameCamContainerLayout = (RelativeLayout) view.findViewById(getResources().getIdentifier("frame_camera_cont", "id", appResourcesPackage));
+                    final RelativeLayout frameCamContainerLayout = (RelativeLayout) view.findViewById(getResources().getIdentifier("camera_container", "id", appResourcesPackage));
 
                     FrameLayout.LayoutParams camViewLayout = new FrameLayout.LayoutParams(frameContainerLayout.getWidth(), frameContainerLayout.getHeight());
                     camViewLayout.gravity = Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL;
@@ -253,9 +257,7 @@ public class CameraActivity extends Fragment {
         // OK, we have multiple cameras.
         // Release this camera -> cameraCurrentlyLocked
         if (mCamera != null) {
-            mCamera.stopPreview();
             mPreview.setCamera(null, -1);
-            mCamera.release();
             mCamera = null;
         }
 
@@ -268,12 +270,8 @@ public class CameraActivity extends Fragment {
         }
 
         cameraCurrentlyLocked = (cameraCurrentlyLocked + 1) % numberOfCameras;
-        mPreview.switchCamera(mCamera, cameraCurrentlyLocked);
-
         Log.d(TAG, "cameraCurrentlyLocked new: " + cameraCurrentlyLocked);
-
-        // Start the preview
-        mCamera.startPreview();
+        mPreview.setCamera(mCamera, cameraCurrentlyLocked);
     }
 
     void setFlashMode(int flashMode) {
@@ -294,12 +292,12 @@ public class CameraActivity extends Fragment {
             mCamera.setParameters(parameters);
         }
 
-        Log.d(TAG, "flashmode: " + flashMode);
+        Log.d(TAG, "flash mode: " + flashMode);
 
         currentFlashMode = flashMode;
     }
 
-    private void setFocusMode(int focusMode) {
+    void setFocusMode(int focusMode) {
         Camera.Parameters parameters = mCamera.getParameters();
         List<String> supportedFocusModes = parameters.getSupportedFocusModes();
 
@@ -325,12 +323,57 @@ public class CameraActivity extends Fragment {
         }
     }
 
-    void takePicture(final int maxWidth, final int maxHeight) {
+    void takePicture(int maxWidth, int maxHeight) {
         if (mPreview != null) {
             if (!canTakePicture)
                 return;
 
             canTakePicture = false;
+
+            Camera.Parameters parameters = mCamera.getParameters();
+
+            Camera.Size previewSize = parameters.getPreviewSize();
+            Camera.Size size;
+
+            List<Camera.Size> sizes = parameters.getSupportedPictureSizes();
+
+            if (maxHeight <= 0 && maxWidth <= 0) {
+                maxWidth = previewSize.width;
+                maxHeight = previewSize.height;
+                size = mPreview.getOptimalSize(sizes, maxWidth, maxHeight);
+            } else {
+                double ratio = previewSize.width / (double) previewSize.height;
+
+                if (maxWidth <= 0 && maxHeight > 0) {
+                    maxWidth = (int)Math.round(maxHeight * ratio);
+                    size = mPreview.getOptimalSize(sizes, maxWidth, maxHeight);
+                } else if (maxHeight <= 0 && maxWidth > 0) {
+                    maxHeight = (int) Math.round(maxWidth / ratio);
+                    size = mPreview.getOptimalSize(sizes, maxWidth, maxHeight);
+                } else {
+                    int targetWidth = maxWidth;
+                    int targetHeight = maxHeight;
+                    double targetRatio = targetWidth / (double) targetHeight;
+
+                    if (Math.abs(ratio - targetRatio) > 0.0000001d) {
+                        if (targetWidth / ratio > targetHeight) {
+                            targetHeight = (int) Math.round(targetWidth / ratio);
+                        } else {
+                            targetWidth = (int) Math.round(targetHeight * ratio);
+                        }
+                    }
+
+                    size = mPreview.getOptimalSize(sizes, targetWidth, targetHeight);
+                }
+            }
+
+            parameters.setPictureSize(size.width, size.height);
+            mCamera.setParameters(parameters);
+
+            Log.d(TAG, "Set picture size to: " + size.width + "x" + size.height);
+
+            final int actualMaxWidth = maxWidth;
+            final int actualMaxHeight = maxHeight;
 
             PictureCallback mPicture = new PictureCallback() {
                 @Override
@@ -365,14 +408,15 @@ public class CameraActivity extends Fragment {
 
                     // crop to match view
                     try {
-                        ImageView pictureView = (ImageView) view.findViewById(getResources().getIdentifier("picture_view", "id", appResourcesPackage));
-                        double viewRatio = pictureView.getWidth() / (double) pictureView.getHeight();
-                        if (pictureRatio != viewRatio) {
+                        double viewRatio = width / (double) height;
+
+                        if (Math.abs(pictureRatio - viewRatio) > 0.0000001d) {
+                            int width = pictureWidth;
+                            int height = pictureHeight;
+
                             if (width / viewRatio > height) {
-                                height = pictureHeight;
                                 width = (int) Math.round(height * viewRatio);
                             } else {
-                                width = pictureWidth;
                                 height = (int) Math.round(width / viewRatio);
                             }
 
@@ -380,6 +424,8 @@ public class CameraActivity extends Fragment {
                             Canvas canvas = new Canvas(work);
                             canvas.drawBitmap(picture, (width - pictureWidth) / 2, (height - pictureHeight) / 2, null);
                             picture = work;
+
+                            Log.d(TAG, String.format("Cropped picture from: %dx%d to: %dx%d", pictureWidth, pictureHeight, width, height));
 
                             pictureWidth = width;
                             pictureHeight = height;
@@ -393,41 +439,35 @@ public class CameraActivity extends Fragment {
                     }
 
                     // scale to fit within bounds
-                    if (maxWidth != 0 || maxHeight != 0) {
-                        try {
-                            int width = maxWidth < 0 ? pictureWidth : maxWidth;
-                            int height = maxHeight < 0 ? pictureHeight : maxHeight;
+                    try {
+                        int width = actualMaxWidth;
+                        int height = actualMaxHeight;
 
-                            // swap max dimension to match image orientation
-                            if ((pictureWidth < pictureHeight && width > height) || (pictureWidth > pictureHeight && width < height)) {
-                                int tmp = width;
-                                width = height;
-                                height = tmp;
-                            }
-
-                            // set other dimension to match if only one is defined
-                            if (width != 0 && height == 0) {
-                                height = (int) Math.round(width / pictureRatio);
-                            } else if (height != 0 && width == 0) {
-                                width = (int) Math.round(height * pictureRatio);
-                            }
-
-                            // scale image if it exceeds the requested size
-                            if (width > 0 && height > 0 && (pictureWidth > width || pictureHeight > height)) {
-                                if (width / pictureRatio > height) {
-                                    width = (int) Math.round(height * pictureRatio);
-                                } else {
-                                    height = (int) Math.round(width / pictureRatio);
-                                }
-
-                                picture = Bitmap.createScaledBitmap(picture, width, height, false);
-                            }
-                        } catch (OutOfMemoryError oom) {
-                            // You can run out of memory if the image is very large:
-                            // http://simonmacdonald.blogspot.ca/2012/07/change-to-camera-code-in-phonegap-190.html
-                            // If this happens, simply do not scale the image and return it unmodified.
-                            // If you do not catch the OutOfMemoryError, the Android app crashes.
+                        // swap max dimension to match image orientation
+                        if ((pictureWidth < pictureHeight && width > height) || (pictureWidth > pictureHeight && width < height)) {
+                            int tmp = width;
+                            //noinspection SuspiciousNameCombination
+                            width = height;
+                            height = tmp;
                         }
+
+                        // scale image if it exceeds the requested size
+                        if (pictureWidth > width || pictureHeight > height) {
+                            if (width / pictureRatio > height) {
+                                width = (int) Math.round(height * pictureRatio);
+                            } else {
+                                height = (int) Math.round(width / pictureRatio);
+                            }
+
+                            picture = Bitmap.createScaledBitmap(picture, width, height, false);
+
+                            Log.d(TAG, String.format("Scaled picture from: %dx%d to: %dx%d", pictureWidth, pictureHeight, width, height));
+                        }
+                    } catch (OutOfMemoryError oom) {
+                        // You can run out of memory if the image is very large:
+                        // http://simonmacdonald.blogspot.ca/2012/07/change-to-camera-code-in-phonegap-190.html
+                        // If this happens, simply do not scale the image and return it unmodified.
+                        // If you do not catch the OutOfMemoryError, the Android app crashes.
                     }
 
                     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -441,135 +481,11 @@ public class CameraActivity extends Fragment {
                 }
             };
 
-            Camera.Parameters parameters = mCamera.getParameters();
-            List<Camera.Size> sizes = parameters.getSupportedPictureSizes();
-
-            Camera.Size size = mPreview.getOptimalSize(sizes, maxWidth, maxHeight);
-            Log.d(TAG, "Set picture size to: " + size.width + "x" + size.height);
-            parameters.setPictureSize(size.width, size.height);
-            mCamera.setParameters(parameters);
-
             mCamera.takePicture(null, null, mPicture);
         } else {
             canTakePicture = true;
         }
     }
-
-//  public boolean hasFrontCamera(){
-//    return getActivity().getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT);
-//  }
-
-//  public Bitmap cropBitmap(Bitmap bitmap, Rect rect){
-//    int w = rect.right - rect.left;
-//    int h = rect.bottom - rect.top;
-//    Bitmap ret = Bitmap.createBitmap(w, h, bitmap.getConfig());
-//    Canvas canvas= new Canvas(ret);
-//    canvas.drawBitmap(bitmap, -rect.left, -rect.top, null);
-//    return ret;
-//  }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-    }
-
-//  private void generatePictureFromView(final Bitmap originalPicture, final Bitmap picture){
-//
-//    final FrameLayout cameraLoader = (FrameLayout)view.findViewById(getResources().getIdentifier("camera_loader", "id", appResourcesPackage));
-//    cameraLoader.setVisibility(View.VISIBLE);
-//    final ImageView pictureView = (ImageView) view.findViewById(getResources().getIdentifier("picture_view", "id", appResourcesPackage));
-//    new Thread() {
-//      public void run() {
-//
-//        try {
-//          final File picFile = storeImage(picture, "_preview");
-//          final File originalPictureFile = storeImage(originalPicture, "_original");
-//
-//          eventListener.onPictureTaken(originalPictureFile.getAbsolutePath());
-//
-//          getActivity().runOnUiThread(new Runnable() {
-//            @Override
-//            public void run() {
-//              cameraLoader.setVisibility(View.INVISIBLE);
-//              pictureView.setImageBitmap(null);
-//            }
-//          });
-//        }
-//        catch(Exception e){
-//          //An unexpected error occurred while saving the picture.
-//          getActivity().runOnUiThread(new Runnable() {
-//            @Override
-//            public void run() {
-//              cameraLoader.setVisibility(View.INVISIBLE);
-//              pictureView.setImageBitmap(null);
-//            }
-//          });
-//        }
-//      }
-//    }.start();
-//  }
-
-//  private File getOutputMediaFile(String suffix){
-//
-//    File mediaStorageDir = getActivity().getApplicationContext().getFilesDir();
-//    /*if(Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED && Environment.getExternalStorageState() != Environment.MEDIA_MOUNTED_READ_ONLY) {
-//      mediaStorageDir = new File(Environment.getExternalStorageDirectory() + "/Android/data/" + getActivity().getApplicationContext().getPackageName() + "/Files");
-//      }*/
-//    if (! mediaStorageDir.exists()){
-//      if (! mediaStorageDir.mkdirs()){
-//        return null;
-//      }
-//    }
-//    // Create a media file name
-//    String timeStamp = new SimpleDateFormat("dd_MM_yyyy_HHmm_ss").format(new Date());
-//    File mediaFile;
-//    String mImageName = "camerapreview_" + timeStamp + suffix + ".jpg";
-//    mediaFile = new File(mediaStorageDir.getPath() + File.separator + mImageName);
-//    return mediaFile;
-//  }
-
-//  private File storeImage(Bitmap image, String suffix) {
-//    File pictureFile = getOutputMediaFile(suffix);
-//    if (pictureFile != null) {
-//      try {
-//        FileOutputStream fos = new FileOutputStream(pictureFile);
-//        image.compress(Bitmap.CompressFormat.JPEG, 80, fos);
-//        fos.close();
-//        return pictureFile;
-//      }
-//      catch (Exception ex) {
-//      }
-//    }
-//    return null;
-//  }
-
-//  public int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
-//    // Raw height and width of image
-//    final int height = options.outHeight;
-//    final int width = options.outWidth;
-//    int inSampleSize = 1;
-//
-//    if (height > reqHeight || width > reqWidth) {
-//
-//      final int halfHeight = height / 2;
-//      final int halfWidth = width / 2;
-//
-//      // Calculate the largest inSampleSize value that is a power of 2 and keeps both
-//      // height and width larger than the requested height and width.
-//      while ((halfHeight / inSampleSize) > reqHeight && (halfWidth / inSampleSize) > reqWidth) {
-//        inSampleSize *= 2;
-//      }
-//    }
-//    return inSampleSize;
-//  }
-
-//  private Bitmap loadBitmapFromView(View v) {
-//    Bitmap b = Bitmap.createBitmap( v.getMeasuredWidth(), v.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
-//    Canvas c = new Canvas(b);
-//    v.layout(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
-//    v.draw(c);
-//    return b;
-//  }
 
     interface CameraPreviewListener {
         void onPictureTaken(String originalPicturePath);
