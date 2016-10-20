@@ -55,16 +55,36 @@
       }
 
       self.defaultFlashMode = AVCaptureFlashModeAuto;
+      self.defaultFocusMode = AVCaptureFocusModeContinuousAutoFocus;
+      self.defaultExposureMode = AVCaptureExposureModeContinuousAutoExposure;
+      self.defaultWhiteBalanceMode = AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance;
 
       self.device = [self cameraWithPosition:self.defaultCamera];
 
-      if ([self.device hasFlash] && [self.device isFlashModeSupported:self.defaultFlashMode]) {
-                                if ([self.device lockForConfiguration:&error]) {
-                                            [self.device setFlashMode:self.defaultFlashMode];
-                                            [self.device unlockForConfiguration];
-                                            } else {
-                                            NSLog(@"%@", error);
-                                            }
+      if ([self.device lockForConfiguration:&error]) {
+        if ([self.device hasFlash] && [self.device isFlashModeSupported:self.defaultFlashMode]) {
+          [self.device setFlashMode:self.defaultFlashMode];
+        }
+
+        if ([self.device isFocusModeSupported:self.defaultFocusMode]) {
+          [self.device setFocusMode:self.defaultFocusMode];
+        }
+
+        if ([self.device isExposureModeSupported:self.defaultExposureMode]) {
+          [self.device setExposureMode:self.defaultExposureMode];
+        }
+
+        if ([self.device lowLightBoostSupported]) {
+          [self.device setAutomaticallyEnablesLowLightBoostWhenAvailable:true];
+        }
+
+        if (self.device isWhiteBalanceModeSupported:self.defaultWhiteBalanceMode]) {
+          [self.device setWhiteBalanceMode:self.defaultWhiteBalanceMode];
+        }
+
+        [self.device unlockForConfiguration];
+      } else {
+        NSLog(@"%@", error);
       }
 
       AVCaptureDeviceInput *videoDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:self.device error:&error];
@@ -139,13 +159,30 @@
 
       videoDevice = [self cameraWithPosition:self.defaultCamera];
 
-      if ([videoDevice hasFlash] && [videoDevice isFlashModeSupported:self.defaultFlashMode]) {
-                                if ([videoDevice lockForConfiguration:&error]) {
-                                            [videoDevice setFlashMode:self.defaultFlashMode];
-                                            [videoDevice unlockForConfiguration];
-                                            } else {
-                                            NSLog(@"%@", error);
-                                            }
+      if ([self.device lockForConfiguration:&error]) {
+        if ([self.device hasFlash] && [self.device isFlashModeSupported:self.defaultFlashMode]) {
+          [self.device setFlashMode:self.defaultFlashMode];
+        }
+
+        if ([self.device isFocusModeSupported:self.defaultFocusMode]) {
+          [self.device setFocusMode:self.defaultFocusMode];
+        }
+
+        if ([self.device isExposureModeSupported:self.defaultExposureMode]) {
+          [self.device setExposureMode:self.defaultExposureMode];
+        }
+
+        if ([self.device lowLightBoostSupported]) {
+          [self.device setAutomaticallyEnablesLowLightBoostWhenAvailable:true];
+        }
+
+        if (self.device isWhiteBalanceModeSupported:self.defaultWhiteBalanceMode]) {
+          [self.device setWhiteBalanceMode:self.defaultWhiteBalanceMode];
+        }
+
+        [self.device unlockForConfiguration];
+      } else {
+        NSLog(@"%@", error);
       }
 
       AVCaptureDeviceInput *videoDeviceInput = [AVCaptureDeviceInput deviceInputWithDevice:videoDevice error:&error];
@@ -196,6 +233,38 @@
     {
       errMsg = @"This device has no flash or torch";
     }
+  }
+  else
+  {
+    errMsg = @"Session is not started";
+  }
+
+  if (errMsg) {
+    NSLog(@"%@", errMsg);
+  }
+}
+
+- (void)setFocusMode:(NSInteger)focusMode
+{
+
+  NSString *errMsg;
+
+  // check session is started
+  if (self.session)
+  {
+    [self.device lockForConfiguration:nil];
+    if (focusMode == 0)
+    {
+      self.defaultFocusMode = AVCaptureFocusModeLocked;
+    }
+    else if (focusMode == 1)
+    {
+      self.defaultFocusMode = AVCaptureFocusModeContinuousAutoFocus;
+    }
+
+    [self.device setFocusMode:self.defaultFocusMode];
+    [self.device unlockForConfiguration];
+    NSLog(@"%zd hey", self.defaultFocusMode);
   }
   else
   {

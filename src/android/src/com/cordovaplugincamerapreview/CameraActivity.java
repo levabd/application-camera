@@ -82,7 +82,8 @@ public class CameraActivity extends Fragment {
             mPreview = new Preview(getActivity());
             mPreview.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
             mPreview.setEnabled(false);
-            RelativeLayout mainLayout = (RelativeLayout) view.findViewById(getResources().getIdentifier("frame_camera_cont", "id", appResourcesPackage));
+
+            RelativeLayout mainLayout = (RelativeLayout) view.findViewById(getResources().getIdentifier("camera_container", "id", appResourcesPackage));
             mainLayout.addView(mPreview);
 
             final GestureDetector gestureDetector = new GestureDetector(getActivity().getApplicationContext(), new GestureDetector.SimpleOnGestureListener() {
@@ -218,7 +219,7 @@ public class CameraActivity extends Fragment {
                 public void onGlobalLayout() {
                     frameContainerLayout.getViewTreeObserver().removeGlobalOnLayoutListener(this);
                     frameContainerLayout.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-                    final RelativeLayout frameCamContainerLayout = (RelativeLayout) view.findViewById(getResources().getIdentifier("frame_camera_cont", "id", appResourcesPackage));
+                    final RelativeLayout frameCamContainerLayout = (RelativeLayout) view.findViewById(getResources().getIdentifier("camera_container", "id", appResourcesPackage));
 
                     FrameLayout.LayoutParams camViewLayout = new FrameLayout.LayoutParams(frameContainerLayout.getWidth(), frameContainerLayout.getHeight());
                     camViewLayout.gravity = Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL;
@@ -322,12 +323,57 @@ public class CameraActivity extends Fragment {
         }
     }
 
-    void takePicture(final int maxWidth, final int maxHeight) {
+    void takePicture(int maxWidth, int maxHeight) {
         if (mPreview != null) {
             if (!canTakePicture)
                 return;
 
             canTakePicture = false;
+
+            Camera.Parameters parameters = mCamera.getParameters();
+
+            Camera.Size previewSize = parameters.getPreviewSize();
+            Camera.Size size;
+
+            List<Camera.Size> sizes = parameters.getSupportedPictureSizes();
+
+            if (maxHeight <= 0 && maxWidth <= 0) {
+                maxWidth = previewSize.width;
+                maxHeight = previewSize.height;
+                size = mPreview.getOptimalSize(sizes, maxWidth, maxHeight);
+            } else {
+                double ratio = previewSize.width / (double) previewSize.height;
+
+                if (maxWidth <= 0 && maxHeight > 0) {
+                    maxWidth = (int)Math.round(maxHeight * ratio);
+                    size = mPreview.getOptimalSize(sizes, maxWidth, maxHeight);
+                } else if (maxHeight <= 0 && maxWidth > 0) {
+                    maxHeight = (int) Math.round(maxWidth / ratio);
+                    size = mPreview.getOptimalSize(sizes, maxWidth, maxHeight);
+                } else {
+                    int targetWidth = maxWidth;
+                    int targetHeight = maxHeight;
+                    double targetRatio = targetWidth / (double) targetHeight;
+
+                    if (Math.abs(ratio - targetRatio) > 0.0000001d) {
+                        if (targetWidth / ratio > targetHeight) {
+                            targetHeight = (int) Math.round(targetWidth / ratio);
+                        } else {
+                            targetWidth = (int) Math.round(targetHeight * ratio);
+                        }
+                    }
+
+                    size = mPreview.getOptimalSize(sizes, targetWidth, targetHeight);
+                }
+            }
+
+            parameters.setPictureSize(size.width, size.height);
+            mCamera.setParameters(parameters);
+
+            Log.d(TAG, "Set picture size to: " + size.width + "x" + size.height);
+
+            final int actualMaxWidth = maxWidth;
+            final int actualMaxHeight = maxHeight;
 
             PictureCallback mPicture = new PictureCallback() {
                 @Override
@@ -362,13 +408,15 @@ public class CameraActivity extends Fragment {
 
                     // crop to match view
                     try {
-                        double viewRatio = mPreview.getWidth() / (double) mPreview.getHeight();
+                        double viewRatio = width / (double) height;
+
                         if (Math.abs(pictureRatio - viewRatio) > 0.0000001d) {
+                            int width = pictureWidth;
+                            int height = pictureHeight;
+
                             if (width / viewRatio > height) {
-                                height = pictureHeight;
                                 width = (int) Math.round(height * viewRatio);
                             } else {
-                                width = pictureWidth;
                                 height = (int) Math.round(width / viewRatio);
                             }
 
@@ -391,44 +439,35 @@ public class CameraActivity extends Fragment {
                     }
 
                     // scale to fit within bounds
-                    if (maxWidth != 0 || maxHeight != 0) {
-                        try {
-                            int width = maxWidth < 0 ? pictureWidth : maxWidth;
-                            int height = maxHeight < 0 ? pictureHeight : maxHeight;
+                    try {
+                        int width = actualMaxWidth;
+                        int height = actualMaxHeight;
 
-                            // swap max dimension to match image orientation
-                            if ((pictureWidth < pictureHeight && width > height) || (pictureWidth > pictureHeight && width < height)) {
-                                int tmp = width;
-                                //noinspection SuspiciousNameCombination
-                                width = height;
-                                height = tmp;
-                            }
-
-                            // set other dimension to match if only one is defined
-                            if (width != 0 && height == 0) {
-                                height = (int) Math.round(width / pictureRatio);
-                            } else if (height != 0 && width == 0) {
-                                width = (int) Math.round(height * pictureRatio);
-                            }
-
-                            // scale image if it exceeds the requested size
-                            if (width > 0 && height > 0 && (pictureWidth > width || pictureHeight > height)) {
-                                if (width / pictureRatio > height) {
-                                    width = (int) Math.round(height * pictureRatio);
-                                } else {
-                                    height = (int) Math.round(width / pictureRatio);
-                                }
-
-                                picture = Bitmap.createScaledBitmap(picture, width, height, false);
-
-                                Log.d(TAG, String.format("Scaled picture from: %dx%d to: %dx%d", pictureWidth, pictureHeight, width, height));
-                            }
-                        } catch (OutOfMemoryError oom) {
-                            // You can run out of memory if the image is very large:
-                            // http://simonmacdonald.blogspot.ca/2012/07/change-to-camera-code-in-phonegap-190.html
-                            // If this happens, simply do not scale the image and return it unmodified.
-                            // If you do not catch the OutOfMemoryError, the Android app crashes.
+                        // swap max dimension to match image orientation
+                        if ((pictureWidth < pictureHeight && width > height) || (pictureWidth > pictureHeight && width < height)) {
+                            int tmp = width;
+                            //noinspection SuspiciousNameCombination
+                            width = height;
+                            height = tmp;
                         }
+
+                        // scale image if it exceeds the requested size
+                        if (pictureWidth > width || pictureHeight > height) {
+                            if (width / pictureRatio > height) {
+                                width = (int) Math.round(height * pictureRatio);
+                            } else {
+                                height = (int) Math.round(width / pictureRatio);
+                            }
+
+                            picture = Bitmap.createScaledBitmap(picture, width, height, false);
+
+                            Log.d(TAG, String.format("Scaled picture from: %dx%d to: %dx%d", pictureWidth, pictureHeight, width, height));
+                        }
+                    } catch (OutOfMemoryError oom) {
+                        // You can run out of memory if the image is very large:
+                        // http://simonmacdonald.blogspot.ca/2012/07/change-to-camera-code-in-phonegap-190.html
+                        // If this happens, simply do not scale the image and return it unmodified.
+                        // If you do not catch the OutOfMemoryError, the Android app crashes.
                     }
 
                     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -441,14 +480,6 @@ public class CameraActivity extends Fragment {
                     canTakePicture = true;
                 }
             };
-
-            Camera.Parameters parameters = mCamera.getParameters();
-            List<Camera.Size> sizes = parameters.getSupportedPictureSizes();
-
-            Camera.Size size = mPreview.getOptimalSize(sizes, maxWidth, maxHeight);
-            Log.d(TAG, "Set picture size to: " + size.width + "x" + size.height);
-            parameters.setPictureSize(size.width, size.height);
-            mCamera.setParameters(parameters);
 
             mCamera.takePicture(null, null, mPicture);
         } else {

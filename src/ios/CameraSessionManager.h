@@ -7,6 +7,7 @@
 - (void) setupSession:(NSString *)defaultCamera;
 - (void) switchCamera;
 - (void) setFlashMode:(NSInteger)flashMode;
+- (void) setFocusMode:(NSInteger)focusMode;
 - (void) updateOrientation:(AVCaptureVideoOrientation)orientation;
 - (AVCaptureVideoOrientation) getCurrentOrientation:(UIInterfaceOrientation)toInterfaceOrientation;
 
@@ -15,6 +16,9 @@
 @property (nonatomic) dispatch_queue_t sessionQueue;
 @property (nonatomic) AVCaptureDevicePosition defaultCamera;
 @property (nonatomic) NSInteger defaultFlashMode;
+@property (nonatomic) NSInteger defaultFocusMode;
+@property (nonatomic) NSInteger defaultExposureMode;
+@property (nonatomic) NSInteger defaultWhiteBalanceMode;
 @property (nonatomic) AVCaptureDevice *device;
 @property (nonatomic) AVCaptureDeviceInput *videoDeviceInput;
 @property (nonatomic) AVCaptureStillImageOutput *stillImageOutput;
