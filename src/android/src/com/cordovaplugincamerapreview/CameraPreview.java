@@ -37,35 +37,34 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
 
-        switch(action) {
-            case "setOnPictureTakenHandler":
-                setOnPictureTakenHandler(callbackContext);
-                return true;
-            case "startCamera":
-                if (cordova.hasPermission(Manifest.permission.CAMERA)) {
-                    return startCamera(args);
-                }
+        if (action.equals("setOnPictureTakenHandler")) {
+            setOnPictureTakenHandler(callbackContext);
+            return true;
+        } else if (action.equals("startCamera")) {
+            if (cordova.hasPermission(Manifest.permission.CAMERA)) {
+                return startCamera(args);
+            }
 
-                execCallback = callbackContext;
-                execArgs = args;
-                cordova.requestPermission(this, permissionsReqId, Manifest.permission.CAMERA);
-                return true;
-            case "takePicture":
-                return takePicture(args, callbackContext);
-            case "setColorEffect":
-                return setColorEffect(args);
-            case "stopCamera":
-                return stopCamera();
-            case "hideCamera":
-                return hideCamera();
-            case "showCamera":
-                return showCamera();
-            case "switchCamera":
-                return switchCamera();
-            case "setFlashMode":
-                return setFlashMode(args);
-            case "setFocusMode":
-                return setFocusMode(args);
+            execCallback = callbackContext;
+            execArgs = args;
+            cordova.requestPermission(this, permissionsReqId, Manifest.permission.CAMERA);
+            return true;
+        } else if (action.equals("takePicture")) {
+            return takePicture(args, callbackContext);
+        } else if (action.equals("setColorEffect")) {
+            return setColorEffect(args);
+        } else if (action.equals("stopCamera")) {
+            return stopCamera();
+        } else if (action.equals("hideCamera")) {
+            return hideCamera();
+        } else if (action.equals("showCamera")) {
+            return showCamera();
+        } else if (action.equals("switchCamera")) {
+            return switchCamera();
+        } else if (action.equals("setFlashMode")) {
+            return setFlashMode(args);
+        } else if (action.equals("setFocusMode")) {
+            return setFocusMode(args);
         }
 
         return false;
@@ -175,36 +174,26 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
         try {
             String effect = args.getString(0);
 
-            switch (effect) {
-                case "aqua":
-                    params.setColorEffect(Camera.Parameters.EFFECT_AQUA);
-                    break;
-                case "blackboard":
-                    params.setColorEffect(Camera.Parameters.EFFECT_BLACKBOARD);
-                    break;
-                case "mono":
-                    params.setColorEffect(Camera.Parameters.EFFECT_MONO);
-                    break;
-                case "negative":
-                    params.setColorEffect(Camera.Parameters.EFFECT_NEGATIVE);
-                    break;
-                case "none":
-                    params.setColorEffect(Camera.Parameters.EFFECT_NONE);
-                    break;
-                case "posterize":
-                    params.setColorEffect(Camera.Parameters.EFFECT_POSTERIZE);
-                    break;
-                case "sepia":
-                    params.setColorEffect(Camera.Parameters.EFFECT_SEPIA);
-                    break;
-                case "solarize":
-                    params.setColorEffect(Camera.Parameters.EFFECT_SOLARIZE);
-                    break;
-                case "whiteboard":
-                    params.setColorEffect(Camera.Parameters.EFFECT_WHITEBOARD);
-                    break;
-                default:
-                    return false;
+            if (effect.equals("aqua")) {
+                params.setColorEffect(Camera.Parameters.EFFECT_AQUA);
+            } else if (effect.equals("blackboard")) {
+                params.setColorEffect(Camera.Parameters.EFFECT_BLACKBOARD);
+            } else if (effect.equals("mono")) {
+                params.setColorEffect(Camera.Parameters.EFFECT_MONO);
+            } else if (effect.equals("negative")) {
+                params.setColorEffect(Camera.Parameters.EFFECT_NEGATIVE);
+            } else if (effect.equals("none")) {
+                params.setColorEffect(Camera.Parameters.EFFECT_NONE);
+            } else if (effect.equals("posterize")) {
+                params.setColorEffect(Camera.Parameters.EFFECT_POSTERIZE);
+            } else if (effect.equals("sepia")) {
+                params.setColorEffect(Camera.Parameters.EFFECT_SEPIA);
+            } else if (effect.equals("solarize")) {
+                params.setColorEffect(Camera.Parameters.EFFECT_SOLARIZE);
+            } else if (effect.equals("whiteboard")) {
+                params.setColorEffect(Camera.Parameters.EFFECT_WHITEBOARD);
+            } else {
+                return false;
             }
 
             fragment.setCameraParameters(params);
