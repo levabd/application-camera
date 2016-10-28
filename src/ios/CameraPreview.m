@@ -164,7 +164,7 @@
   [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void) setFlashMode:(CDVInvokedUrlCommand*)command {
+- (void) setFocusMode:(CDVInvokedUrlCommand*)command {
   NSLog(@"Focus Mode");
   CDVPluginResult *pluginResult;
 
