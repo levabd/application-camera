@@ -74,11 +74,11 @@
           [self.device setExposureMode:self.defaultExposureMode];
         }
 
-        if ([self.device lowLightBoostSupported]) {
+        if ([self.device isLowLightBoostSupported]) {
           [self.device setAutomaticallyEnablesLowLightBoostWhenAvailable:true];
         }
 
-        if (self.device isWhiteBalanceModeSupported:self.defaultWhiteBalanceMode]) {
+        if ([self.device isWhiteBalanceModeSupported:self.defaultWhiteBalanceMode]) {
           [self.device setWhiteBalanceMode:self.defaultWhiteBalanceMode];
         }
 
@@ -172,7 +172,7 @@
           [self.device setExposureMode:self.defaultExposureMode];
         }
 
-        if ([self.device lowLightBoostSupported]) {
+        if ([self.device isLowLightBoostSupported]) {
           [self.device setAutomaticallyEnablesLowLightBoostWhenAvailable:true];
         }
 
