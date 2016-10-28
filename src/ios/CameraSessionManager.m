@@ -176,7 +176,7 @@
           [self.device setAutomaticallyEnablesLowLightBoostWhenAvailable:true];
         }
 
-        if (self.device isWhiteBalanceModeSupported:self.defaultWhiteBalanceMode]) {
+        if ([self.device isWhiteBalanceModeSupported:self.defaultWhiteBalanceMode]) {
           [self.device setWhiteBalanceMode:self.defaultWhiteBalanceMode];
         }
 
