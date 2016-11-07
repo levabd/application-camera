@@ -4,6 +4,13 @@ Cordova CameraPreview Plugin
 Cordova plugin that allows camera interaction from HTML code.<br/>
 Show camera preview popup on top of the HTML.<br/>
 
+Different in this repo:
+===================
+Android:
+Replaced method to find best size of preview.
+Now on preview video have good quality.
+
+===================
 <p><b>Features:</b></p>
 <ul>
   <li>Start a camera preview from HTML code.</li>
