@@ -3,6 +3,7 @@ package com.cordovaplugincamerapreview;
 import android.app.Activity;
 import android.content.Context;
 import android.hardware.Camera;
+import android.hardware.Camera.Size;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Surface;
@@ -11,7 +12,9 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.RelativeLayout;
 import org.apache.cordova.LOG;
-
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.io.IOException;
 import java.util.List;
 
@@ -50,7 +53,9 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback {
         setMeasuredDimension(viewWidth, viewHeight);
 
         if (mSupportedPreviewSizes != null) {
-            mPreviewSize = getOptimalSize(mSupportedPreviewSizes, viewWidth, viewHeight);
+            Camera.Parameters parameters = mCamera.getParameters();
+            mPreviewSize = getBestAspectPreviewSize(displayOrientation, viewWidth, viewHeight, parameters, 0.0d);
+            //mPreviewSize = getOptimalSize(mSupportedPreviewSizes, viewWidth, viewHeight);
         }
     }
 
@@ -171,6 +176,40 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback {
     int getDisplayOrientation() {
         return displayOrientation;
     }
+    // THIS
+    public static Camera.Size getBestAspectPreviewSize(int displayOrientation,
+                                                       int width,
+                                                       int height,
+                                                       Camera.Parameters parameters,
+                                                       double closeEnough) {
+        double targetRatio=(double)width / height;
+        Camera.Size optimalSize=null;
+        double minDiff=Double.MAX_VALUE;
+
+        if (displayOrientation == 90 || displayOrientation == 270) {
+            targetRatio=(double)height / width;
+        }
+
+        List<Size> sizes = parameters.getSupportedPreviewSizes();
+
+        Collections.sort(sizes,
+                Collections.reverseOrder(new SizeComparator()));
+
+        for (Size size : sizes) {
+            double ratio=(double)size.width / size.height;
+
+            if (Math.abs(ratio - targetRatio) < minDiff) {
+                optimalSize=size;
+                minDiff=Math.abs(ratio - targetRatio);
+            }
+
+            if (minDiff < closeEnough) {
+                break;
+            }
+        }
+
+        return(optimalSize);
+    }
 
     Camera.Size getOptimalSize(List<Camera.Size> sizes, int targetWidth, int targetHeight) {
         final double ASPECT_TOLERANCE = 0.1;
@@ -214,10 +253,10 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback {
 
     private void setCameraPreviewSize() {
         if (mSupportedPreviewSizes != null) {
-            mPreviewSize = getOptimalSize(mSupportedPreviewSizes, viewWidth, viewHeight);
-
+            //mPreviewSize = getOptimalSize(mSupportedPreviewSizes, viewWidth, viewHeight);
+            Camera.Parameters parameters = mCamera.getParameters();
+            mPreviewSize = getBestAspectPreviewSize(displayOrientation, viewWidth, viewHeight, parameters, 0.0d);
             if (mPreviewSize != null) {
-                Camera.Parameters parameters = mCamera.getParameters();
                 parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
                 mCamera.setParameters(parameters);
             }
@@ -269,4 +308,23 @@ class Preview extends RelativeLayout implements SurfaceHolder.Callback {
         mCamera.setDisplayOrientation(displayOrientation);
         requestLayout();
     }
+
+    private static class SizeComparator implements
+            Comparator<Camera.Size> {
+        @Override
+        public int compare(Size lhs, Size rhs) {
+            int left=lhs.width * lhs.height;
+            int right=rhs.width * rhs.height;
+
+            if (left < right) {
+                return(-1);
+            }
+            else if (left > right) {
+                return(1);
+            }
+
+            return(0);
+        }
+    }
 }
+
