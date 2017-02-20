@@ -123,6 +123,9 @@ public class CameraActivity extends Fragment {
                             if (event.getAction() != MotionEvent.ACTION_MOVE && isSingleTapTouch) {
                                 if (tapToTakePicture) {
                                     takePicture(0, 0);
+                                } else {
+                                    // refocus function added
+                                    refocusCamera();
                                 }
                                 return true;
                             } else {
@@ -172,6 +175,21 @@ public class CameraActivity extends Fragment {
                 }
             });
         }
+    }
+
+    // refocus function added
+    public void refocusCamera()
+    {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mCamera.cancelAutoFocus();
+                mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                    @Override
+                    public void onAutoFocus(boolean success, Camera camera) {}
+                });
+            }
+        });
     }
 
     private void setDefaultCameraId() {
