@@ -124,6 +124,7 @@ public class CameraActivity extends Fragment {
                                 if (tapToTakePicture) {
                                     takePicture(0, 0);
                                 } else {
+                                    // refocus function added
                                     refocusCamera();
                                 }
                                 return true;
@@ -176,6 +177,7 @@ public class CameraActivity extends Fragment {
         }
     }
 
+    // refocus function added
     public void refocusCamera()
     {
         getActivity().runOnUiThread(new Runnable() {

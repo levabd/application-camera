@@ -84,6 +84,7 @@ CameraPreview.disable = function(disable, onSuccess, onError){
   exec(onSuccess, onError, PLUGIN_NAME, "disable", [disable]);
 };
 
+// refocus function added
 CameraPreview.focus = function() {
     exec(null, null, PLUGIN_NAME, "focus", []);
 };
