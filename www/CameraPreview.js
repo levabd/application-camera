@@ -84,6 +84,10 @@ CameraPreview.disable = function(disable, onSuccess, onError){
   exec(onSuccess, onError, PLUGIN_NAME, "disable", [disable]);
 };
 
+CameraPreview.focus = function() {
+    exec(null, null, PLUGIN_NAME, "focus", []);
+};
+
 CameraPreview.FlashMode = {OFF: 0, ON: 1, AUTO: 2};
 CameraPreview.FocusMode = {AUTO: 0, CONTINUOUS: 1};
 

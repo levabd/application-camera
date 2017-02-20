@@ -20,6 +20,7 @@ import org.json.JSONException;
 public class CameraPreview extends CordovaPlugin implements CameraActivity.CameraPreviewListener {
 
     private final String TAG = "CameraPreview";
+    private final String focusCameraAction = "focus";
 
     private final int permissionsReqId = 0;
     private CallbackContext execCallback;
@@ -65,6 +66,8 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
             return setFlashMode(args);
         } else if (action.equals("setFocusMode")) {
             return setFocusMode(args);
+        } else if (focusCameraAction.equals(action)){
+            return focusCamera(args, callbackContext);
         }
 
         return false;
@@ -150,6 +153,14 @@ public class CameraPreview extends CordovaPlugin implements CameraActivity.Camer
             e.printStackTrace();
             return false;
         }
+        return true;
+    }
+
+    private boolean focusCamera(final JSONArray args, CallbackContext callbackContext) {
+        if(fragment == null){
+            return false;
+        }
+        fragment.refocusCamera();
         return true;
     }
 
