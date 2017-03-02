@@ -71,7 +71,8 @@
     [self.cameraRenderController removeFromParentViewController];
     self.cameraRenderController = nil;
 
-    [self.sessionManager.session stopRunning];
+    // ios fix very slow closing
+    //[self.sessionManager.session stopRunning];
     self.sessionManager = nil;
 
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
